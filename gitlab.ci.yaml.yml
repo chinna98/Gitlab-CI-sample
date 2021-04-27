@@ -1,0 +1,43 @@
+image: docker:stable
+
+variables:
+  DOCKER_DRIVER: overlay
+  DOCKER_TLS_CERTDIR: ""
+  name: one
+  value: initialValue 
+
+services:
+- docker:dind
+
+stages:
+- build
+- deploy
+
+before_script:
+  - docker login -u kanakanti98@gmail.com -p FLAfhgJzxHhxQbtSZXj4 hub-peerxp.pwslab.net
+
+build:
+  stage: build
+  script:
+    - docker build -t hub-peerxp.pwslab.net/devops-assignment/java-9209 .
+    - docker push hub-peerxp.pwslab.net/devops-assignment/java-9209
+    
+  only:
+    - master
+
+deploy:
+  stage: deploy
+  before_script:
+#    - apk add openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+  script:
+    - ssh -o StrictHostKeyChecking=no ubuntu@65.0.89.76 "sudo docker ps |awk '{print $1}' | xargs docker stop ; sudo docker run --rm -p 8080:8080 -d $PULL_IMAGE"     
+  only:
+    - master
+
+
+
+
